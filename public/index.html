@@ -3,233 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DigitalOcean Workshop Demo</title>
+    <title>Advanced Todo App</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 800px;
             margin: 0 auto;
             background: white;
-            border-radius: 15px;
+            border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }
-        
+
         .header {
-            background: #0080ff;
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             padding: 30px;
             text-align: center;
         }
-        
+
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
         }
-        
-        .services {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 15px;
-        }
-        
-        .service-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-        
-        .content {
+
+        .form-container {
             padding: 30px;
-        }
-        
-        .form-section {
             background: #f8f9fa;
-            padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 30px;
+            border-bottom: 2px solid #e9ecef;
         }
-        
+
         .form-group {
             margin-bottom: 20px;
         }
-        
-        label {
+
+        .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
+            color: #495057;
         }
-        
-        input, textarea, select {
+
+        .form-control {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
             font-size: 16px;
-            transition: border-color 0.3s;
+            transition: all 0.3s ease;
         }
-        
-        input:focus, textarea:focus {
+
+        .form-control:focus {
             outline: none;
-            border-color: #0080ff;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
         .file-input {
-            border: 2px dashed #ccc;
-            padding: 20px;
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px 16px;
+            background: #e9ecef;
+            border: 2px dashed #adb5bd;
+            border-radius: 10px;
             text-align: center;
             cursor: pointer;
-            transition: border-color 0.3s;
+            transition: all 0.3s ease;
+            color: #495057;
         }
-        
-        .file-input:hover {
-            border-color: #0080ff;
+
+        .file-input-label:hover {
+            background: #dee2e6;
+            border-color: #667eea;
         }
-        
+
+        .file-selected {
+            background: #e3f2fd !important;
+            border-color: #667eea !important;
+            color: #1976d2;
+        }
+
         .btn {
-            background: #0080ff;
-            color: white;
-            padding: 12px 24px;
+            padding: 12px 30px;
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: 600;
-            transition: background 0.3s;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-        
-        .btn:hover {
-            background: #0066cc;
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
         }
-        
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
         .btn-danger {
             background: #dc3545;
+            color: white;
         }
-        
-        .btn-danger:hover {
-            background: #c82333;
+
+        .btn:hover {
+            transform: translateY(-1px);
         }
-        
-        .todos {
-            display: grid;
-            gap: 20px;
+
+        .todos-container {
+            padding: 30px;
         }
-        
+
         .todo-item {
             background: white;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
             padding: 20px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
         }
-        
+
         .todo-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-        
+
         .todo-item.completed {
             background: #f8f9fa;
             opacity: 0.7;
         }
-        
+
         .todo-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
-        
+
         .todo-title {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 600;
-            color: #333;
-            flex: 1;
+            color: #343a40;
         }
-        
+
+        .todo-item.completed .todo-title {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+
+        .todo-description {
+            color: #6c757d;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .todo-file {
+            margin-bottom: 15px;
+        }
+
+        .file-preview {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            color: #1976d2;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .file-preview:hover {
+            background: #bbdefb;
+        }
+
+        .file-icon {
+            margin-right: 8px;
+            font-size: 1.1rem;
+        }
+
         .todo-actions {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
-        
-        .todo-description {
-            color: #666;
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-        
-        .todo-file {
-            background: #e3f2fd;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        
-        .todo-file a {
-            color: #0080ff;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .todo-meta {
+
+        .todo-date {
             font-size: 0.9rem;
-            color: #999;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
+            color: #adb5bd;
+            margin-top: 10px;
         }
-        
+
         .loading {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: #6c757d;
         }
-        
-        .status {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .status-error {
+
+        .error {
             background: #f8d7da;
             color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
-        
-        .status-success {
+
+        .success {
             background: #d4edda;
             color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
-        
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
+                border-radius: 15px;
             }
             
             .header h1 {
                 font-size: 2rem;
             }
             
-            .services {
+            .todo-actions {
                 flex-direction: column;
-                align-items: center;
+                gap: 5px;
+            }
+            
+            .btn {
+                width: 100%;
             }
         }
     </style>
@@ -237,209 +281,253 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>DigitalOcean Workshop Demo</h1>
-            <p>Todo App with App Platform + Spaces + Managed Database</p>
-            <div class="services">
-                <div class="service-badge">App Platform</div>
-                <div class="service-badge">Spaces</div>
-                <div class="service-badge">PostgreSQL</div>
-            </div>
+            <h1>📝 Advanced Todo App</h1>
+            <p>Manage your tasks with file attachments</p>
         </div>
-        
-        <div class="content">
-            <div id="status" class="status" style="display: none;"></div>
+
+        <div class="form-container">
+            <form id="todo-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="title">Task Title *</label>
+                    <input type="text" id="title" name="title" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-control" 
+                        description: todo.description,
+                        completed: !todo.completed
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to update task');
+
+                const updatedTodo = await response.json();
+                const index = todos.findIndex(t => t.id === id);
+                todos[index] = updatedTodo;
+                renderTodos();
+                showMessage(`Task ${updatedTodo.completed ? 'completed' : 'reopened'}!`);
+            } catch (error) {
+                console.error('Error updating todo:', error);
+                showMessage('Failed to update task', 'error');
+            }
+        }
+
+        // Delete todo
+        async function deleteTodo(id) {
+            if (!confirm('Are you sure you want to delete this task?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/todos/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Failed to delete task');
+
+                todos = todos.filter(t => t.id !== id);
+                renderTodos();
+                showMessage('Task deleted successfully!');
+            } catch (error) {
+                console.error('Error deleting todo:', error);
+                showMessage('Failed to delete task', 'error');
+            }
+        }
+
+        // Form submission
+        todoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            <div class="form-section">
-                <h2 style="margin-bottom: 20px;">Add New Todo</h2>
-                <form id="todoForm">
-                    <div class="form-group">
-                        <label for="title">Title *</label>
-                        <input type="text" id="title" name="title" required>
+            const formData = new FormData(todoForm);
+            await addTodo(formData);
+        });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchTodos();
+        });
+
+        // Make functions global for onclick handlers
+        window.toggleComplete = toggleComplete;
+        window.deleteTodo = deleteTodo;
+    </script>
+</body>
+</html>      placeholder="Add details about your task..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="file">Attach File (Optional)</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="file" name="file" class="file-input" 
+                               accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx">
+                        <label for="file" class="file-input-label" id="file-label">
+                            📎 Click to select a file or drag and drop
+                        </label>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="file">Attachment (Optional)</label>
-                        <input type="file" id="file" name="file" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt">
-                        <small style="color: #666; margin-top: 5px; display: block;">
-                            Supported: Images, PDFs, Text files (Max 5MB)
-                        </small>
-                    </div>
-                    
-                    <button type="submit" class="btn">Add Todo</button>
-                </form>
-            </div>
-            
-            <div class="todos-section">
-                <h2 style="margin-bottom: 20px;">Your Todos</h2>
-                <div id="loading" class="loading">Loading todos...</div>
-                <div id="todos" class="todos"></div>
-            </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">➕ Add Task</button>
+            </form>
+        </div>
+
+        <div class="todos-container">
+            <div id="message-container"></div>
+            <div id="todos-list" class="loading">Loading tasks...</div>
         </div>
     </div>
 
     <script>
+        const API_BASE = '/api';
         let todos = [];
-        
-        // Load todos on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTodos();
-        });
-        
-        // Form submission
-        document.getElementById('todoForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData();
-            formData.append('title', document.getElementById('title').value);
-            formData.append('description', document.getElementById('description').value);
-            
-            const fileInput = document.getElementById('file');
-            if (fileInput.files[0]) {
-                formData.append('file', fileInput.files[0]);
-            }
-            
-            try {
-                const response = await fetch('/api/todos', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    showStatus('Todo added successfully!', 'success');
-                    document.getElementById('todoForm').reset();
-                    loadTodos();
-                } else {
-                    const error = await response.json();
-                    showStatus(error.error || 'Failed to add todo', 'error');
-                }
-            } catch (error) {
-                showStatus('Network error: ' + error.message, 'error');
+
+        // DOM Elements
+        const todoForm = document.getElementById('todo-form');
+        const todosList = document.getElementById('todos-list');
+        const messageContainer = document.getElementById('message-container');
+        const fileInput = document.getElementById('file');
+        const fileLabel = document.getElementById('file-label');
+
+        // File input handling
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileLabel.textContent = `📄 ${file.name}`;
+                fileLabel.classList.add('file-selected');
+            } else {
+                fileLabel.textContent = '📎 Click to select a file or drag and drop';
+                fileLabel.classList.remove('file-selected');
             }
         });
-        
-        // Load todos from API
-        async function loadTodos() {
-            try {
-                const response = await fetch('/api/todos');
-                todos = await response.json();
-                renderTodos();
-                document.getElementById('loading').style.display = 'none';
-            } catch (error) {
-                document.getElementById('loading').innerHTML = 'Error loading todos: ' + error.message;
+
+        // Show message
+        function showMessage(message, type = 'success') {
+            messageContainer.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+
+        // Get file icon based on file name
+        function getFileIcon(fileName) {
+            if (!fileName) return '';
+            const ext = fileName.split('.').pop().toLowerCase();
+            switch (ext) {
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                case 'gif':
+                    return '🖼️';
+                case 'pdf':
+                    return '📄';
+                case 'doc':
+                case 'docx':
+                    return '📝';
+                default:
+                    return '📎';
             }
         }
-        
+
         // Render todos
         function renderTodos() {
-            const todosContainer = document.getElementById('todos');
-            
             if (todos.length === 0) {
-                todosContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No todos yet. Add your first one above!</p>';
+                todosList.innerHTML = '<div class="loading">No tasks found. Add your first task above!</div>';
                 return;
             }
-            
-            todosContainer.innerHTML = todos.map(todo => `
+
+            todosList.innerHTML = todos.map(todo => `
                 <div class="todo-item ${todo.completed ? 'completed' : ''}">
                     <div class="todo-header">
-                        <div class="todo-title">${escapeHtml(todo.title)}</div>
+                        <h3 class="todo-title">${escapeHtml(todo.title)}</h3>
                         <div class="todo-actions">
-                            <button class="btn" onclick="toggleTodo(${todo.id}, ${!todo.completed})" style="padding: 5px 10px; font-size: 14px;">
-                                ${todo.completed ? 'Undo' : 'Complete'}
+                            <button class="btn btn-secondary" onclick="toggleComplete(${todo.id})">
+                                ${todo.completed ? '↩️ Undo' : '✅ Complete'}
                             </button>
-                            <button class="btn btn-danger" onclick="deleteTodo(${todo.id})" style="padding: 5px 10px; font-size: 14px;">
-                                Delete
+                            <button class="btn btn-danger" onclick="deleteTodo(${todo.id})">
+                                🗑️ Delete
                             </button>
                         </div>
                     </div>
                     
-                    ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ''}
+                    ${todo.description ? `<p class="todo-description">${escapeHtml(todo.description)}</p>` : ''}
                     
                     ${todo.file_url ? `
                         <div class="todo-file">
-                            📎 <a href="${todo.file_url}" target="_blank">${escapeHtml(todo.file_name)}</a>
+                            <a href="${todo.file_url}" target="_blank" class="file-preview">
+                                <span class="file-icon">${getFileIcon(todo.file_name)}</span>
+                                ${escapeHtml(todo.file_name || 'Attached File')}
+                            </a>
                         </div>
                     ` : ''}
                     
-                    <div class="todo-meta">
-                        Created: ${new Date(todo.created_at).toLocaleDateString()}
-                        ${todo.updated_at !== todo.created_at ? ` • Updated: ${new Date(todo.updated_at).toLocaleDateString()}` : ''}
+                    <div class="todo-date">
+                        Created: ${formatDate(todo.created_at)}
+                        ${todo.updated_at !== todo.created_at ? ` • Updated: ${formatDate(todo.updated_at)}` : ''}
                     </div>
                 </div>
             `).join('');
         }
-        
-        // Toggle todo completion
-        async function toggleTodo(id, completed) {
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Fetch todos
+        async function fetchTodos() {
+            try {
+                const response = await fetch(`${API_BASE}/todos`);
+                if (!response.ok) throw new Error('Failed to fetch todos');
+                todos = await response.json();
+                renderTodos();
+            } catch (error) {
+                console.error('Error fetching todos:', error);
+                showMessage('Failed to load tasks', 'error');
+                todosList.innerHTML = '<div class="error">Failed to load tasks. Please refresh the page.</div>';
+            }
+        }
+
+        // Add todo
+        async function addTodo(formData) {
+            try {
+                const response = await fetch(`${API_BASE}/todos`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to add task');
+                }
+
+                const newTodo = await response.json();
+                todos.unshift(newTodo);
+                renderTodos();
+                showMessage('Task added successfully!');
+                todoForm.reset();
+                fileLabel.textContent = '📎 Click to select a file or drag and drop';
+                fileLabel.classList.remove('file-selected');
+            } catch (error) {
+                console.error('Error adding todo:', error);
+                showMessage(error.message, 'error');
+            }
+        }
+
+        // Toggle complete
+        async function toggleComplete(id) {
             try {
                 const todo = todos.find(t => t.id === id);
-                const response = await fetch(`/api/todos/${id}`, {
+                if (!todo) return;
+
+                const response = await fetch(`${API_BASE}/todos/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         title: todo.title,
-                        description: todo.description,
-                        completed: completed
-                    })
-                });
-                
-                if (response.ok) {
-                    loadTodos();
-                    showStatus(`Todo ${completed ? 'completed' : 'reopened'}!`, 'success');
-                } else {
-                    showStatus('Failed to update todo', 'error');
-                }
-            } catch (error) {
-                showStatus('Network error: ' + error.message, 'error');
-            }
-        }
-        
-        // Delete todo
-        async function deleteTodo(id) {
-            if (!confirm('Are you sure you want to delete this todo?')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/todos/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    loadTodos();
-                    showStatus('Todo deleted successfully!', 'success');
-                } else {
-                    showStatus('Failed to delete todo', 'error');
-                }
-            } catch (error) {
-                showStatus('Network error: ' + error.message, 'error');
-            }
-        }
-        
-        // Show status message
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = 'status ' + (type === 'error' ? 'status-error' : 'status-success');
-            statusDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
-        }
-        
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
-</body>
-</html>
