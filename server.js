@@ -1,51 +1,52 @@
+// server.js
 const express = require('express');
 const multer = require('multer');
-const AWS = require('aws-sdk');
 const { Pool } = require('pg');
+const AWS = require('aws-sdk');
 const path = require('path');
+const fs = require('fs');
+require('dotenv').config();
 const cors = require('cors');
 const helmet = require('helmet');
-require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet());
-app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Configure DigitalOcean Spaces (S3-compatible)
-const spacesEndpoint = new AWS.Endpoint(process.env.SPACES_ENDPOINT || 'sgp1.digitaloceanspaces.com');
-const s3 = new AWS.S3({
-  endpoint: spacesEndpoint,
-  accessKeyId: process.env.SPACES_KEY,
-  secretAccessKey: process.env.SPACES_SECRET,
-  region: process.env.SPACES_REGION || 'sgp1'
-});
-
-// Configure PostgreSQL connection
+// PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Configure multer for file uploads
+// DigitalOcean Spaces configuration
+const spacesEndpoint = new AWS.Endpoint(process.env.DO_SPACES_ENDPOINT);
+const s3 = new AWS.S3({
+  endpoint: spacesEndpoint,
+  accessKeyId: process.env.DO_SPACES_KEY,
+  secretAccessKey: process.env.DO_SPACES_SECRET,
+  region: process.env.DO_SPACES_REGION || 'sgp1'
+});
+
+// Multer configuration for handling file uploads
 const upload = multer({
-  storage: multer.memoryStorage(),
+  dest: 'uploads/',
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|txt/;
+    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
     
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only images, PDFs, and text files are allowed'));
+      cb(new Error('Only images and documents are allowed'));
     }
   }
 });
@@ -66,23 +67,46 @@ async function initDB() {
       )
     `);
     console.log('Database initialized successfully');
+  } catch (err) {
+    console.error('Database initialization error:', err);
+  }
+}
+
+// Upload file to DigitalOcean Spaces
+async function uploadToSpaces(file) {
+  const fileKey = `todos/${Date.now()}-${file.originalname}`;
+  const fileContent = fs.readFileSync(file.path);
+  
+  const params = {
+    Bucket: process.env.DO_SPACES_BUCKET,
+    Key: fileKey,
+    Body: fileContent,
+    ACL: 'public-read',
+    ContentType: file.mimetype
+  };
+  
+  try {
+    const data = await s3.upload(params).promise();
+    // Clean up temporary file
+    fs.unlinkSync(file.path);
+    return {
+      url: data.Location,
+      key: fileKey
+    };
   } catch (error) {
-    console.error('Database initialization error:', error);
+    // Clean up temporary file even if upload fails
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+    throw error;
   }
 }
 
 // Routes
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    services: {
-      database: 'Connected',
-      spaces: 'Configured'
-    }
-  });
+// Serve main page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Get all todos
@@ -90,8 +114,8 @@ app.get('/api/todos', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM todos ORDER BY created_at DESC');
     res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching todos:', error);
+  } catch (err) {
+    console.error('Error fetching todos:', err);
     res.status(500).json({ error: 'Failed to fetch todos' });
   }
 });
@@ -100,15 +124,20 @@ app.get('/api/todos', async (req, res) => {
 app.post('/api/todos', upload.single('file'), async (req, res) => {
   try {
     const { title, description } = req.body;
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    
     let fileUrl = null;
     let fileName = null;
 
     // Upload file to Spaces if provided
     if (req.file) {
-      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const uniqueFileName = `${Date.now()}-${req.file.originalname}`;
       const uploadParams = {
         Bucket: process.env.SPACES_BUCKET,
-        Key: `uploads/${fileName}`,
+        Key: `uploads/${uniqueFileName}`,
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
         ACL: 'public-read'
@@ -133,58 +162,67 @@ app.post('/api/todos', upload.single('file'), async (req, res) => {
 
 // Update todo
 app.put('/api/todos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, description, completed } = req.body;
+  
   try {
-    const { id } = req.params;
-    const { title, description, completed } = req.body;
-    
     const result = await pool.query(
       'UPDATE todos SET title = $1, description = $2, completed = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
       [title, description, completed, id]
     );
-
+    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Todo not found' });
     }
-
+    
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating todo:', error);
+  } catch (err) {
+    console.error('Error updating todo:', err);
     res.status(500).json({ error: 'Failed to update todo' });
   }
 });
 
 // Delete todo
 app.delete('/api/todos/:id', async (req, res) => {
+  const { id } = req.params;
+  
   try {
-    const { id } = req.params;
+    // Get todo first to delete file from Spaces if exists
+    const todoResult = await pool.query('SELECT * FROM todos WHERE id = $1', [id]);
     
-    // Get todo to check if it has a file
-    const todo = await pool.query('SELECT * FROM todos WHERE id = $1', [id]);
-    
-    if (todo.rows.length === 0) {
+    if (todoResult.rows.length === 0) {
       return res.status(404).json({ error: 'Todo not found' });
     }
-
-    // Delete file from Spaces if it exists
-    if (todo.rows[0].file_url) {
-      const fileKey = todo.rows[0].file_url.split('/').pop();
-      await s3.deleteObject({
-        Bucket: process.env.SPACES_BUCKET,
-        Key: `uploads/${fileKey}`
-      }).promise();
+    
+    const todo = todoResult.rows[0];
+    
+    // Delete file from Spaces if exists
+    if (todo.file_url) {
+      const fileKey = todo.file_url.split('/').slice(-2).join('/'); // Extract key from URL
+      try {
+        await s3.deleteObject({
+          Bucket: process.env.DO_SPACES_BUCKET,
+          Key: fileKey
+        }).promise();
+      } catch (deleteError) {
+        console.error('Error deleting file from Spaces:', deleteError);
+        // Continue with todo deletion even if file deletion fails
+      }
     }
-
+    
+    // Delete todo from database
     await pool.query('DELETE FROM todos WHERE id = $1', [id]);
+    
     res.json({ message: 'Todo deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting todo:', error);
+  } catch (err) {
+    console.error('Error deleting todo:', err);
     res.status(500).json({ error: 'Failed to delete todo' });
   }
 });
 
-// Serve frontend
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Error handling middleware
@@ -194,11 +232,24 @@ app.use((error, req, res, next) => {
       return res.status(400).json({ error: 'File too large' });
     }
   }
-  res.status(500).json({ error: error.message });
+  
+  console.error('Unhandled error:', error);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Start server
-app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, async () => {
+  console.log(`Server running on port ${port}`);
   await initDB();
 });
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  pool.end(() => {
+    console.log('Database pool closed');
+    process.exit(0);
+  });
+});
+
+module.exports = app;
