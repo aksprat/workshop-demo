@@ -292,10 +292,13 @@ app.use((error, req, res, next) => {
 });
 
 // Start server
+const port = process.env.PORT || 8080;
+
 app.listen(port, async () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${port}`);
   await initDB();
 });
+
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
