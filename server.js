@@ -9,7 +9,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const app = express();
-const PORT = process.env.PORT || 8080; // DigitalOcean uses port 8080
 
 // Middleware
 app.use(helmet());
