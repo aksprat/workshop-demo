@@ -293,7 +293,7 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(port, async () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server running on port ${PORT}`);
   await initDB();
 });
 
